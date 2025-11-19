@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'analytics_models.dart';
 import '../../orders/data/order_models.dart' as om;
 import '../../sweets/data/sweet.dart';
-import '../../categories/data/category.dart';
+import '../../categories/data/category.dart' as cat;
 import '../../../core/config/slug_routing.dart';
 
 /// Service for computing analytics from orders
@@ -114,7 +114,7 @@ class AnalyticsService {
   }
 
   /// Fetch all categories for the branch
-  Future<Map<String, Category>> _fetchCategories() async {
+  Future<Map<String, cat.Category>> _fetchCategories() async {
     final snapshot = await _fs
         .collection('merchants')
         .doc(_m)
@@ -124,7 +124,7 @@ class AnalyticsService {
         .get();
 
     return Map.fromEntries(
-      snapshot.docs.map((doc) => MapEntry(doc.id, Category.fromDoc(doc.id, doc.data()))),
+      snapshot.docs.map((doc) => MapEntry(doc.id, cat.Category.fromDoc(doc.id, doc.data()))),
     );
   }
 
@@ -259,7 +259,7 @@ class AnalyticsService {
   List<CategoryPerformance> _computeCategoryPerformance(
     List<_OrderData> orders,
     Map<String, Sweet> products,
-    Map<String, Category> categories,
+    Map<String, cat.Category> categories,
   ) {
     final completedStatuses = {
       om.OrderStatus.served,
