@@ -320,98 +320,183 @@ class _OrderTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final cs = Theme.of(context).colorScheme;
+    final onSurface = cs.onSurface;
     final notesCount =
         order.items.where((it) => (it.note ?? '').trim().isNotEmpty).length;
 
-    return ListTile(
-      dense: false,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      title: Row(
-        children: [
-          Text(
-            order.orderNo.isNotEmpty ? '#${order.orderNo}' : '#${order.id}',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(width: 8),
-          if (order.table != null && order.table!.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: onSurface.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                'Table ${order.table}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: onSurface.withOpacity(0.85),
-                ),
-              ),
-            ),
-          const Spacer(),
-          Text(
-            order.subtotal.toStringAsFixed(3), // BHD 3dp
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ],
+    final finished = order.status == om.OrderStatus.served ||
+                    order.status == om.OrderStatus.cancelled;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      elevation: finished ? 0 : 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: finished
+            ? onSurface.withOpacity(0.1)
+            : Colors.transparent,
+        ),
       ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: -6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            _StatusPill(status: order.status),
-            Text(
-              _fmtTime(order.createdAt),
-              style: TextStyle(color: onSurface.withOpacity(0.7), fontSize: 12),
-            ),
-            Text('•', style: TextStyle(color: onSurface.withOpacity(0.5))),
-            Text(
-              '${order.items.length} items',
-              style: TextStyle(color: onSurface.withOpacity(0.7), fontSize: 12),
-            ),
-            if (notesCount > 0) ...[
-              Text('•', style: TextStyle(color: onSurface.withOpacity(0.5))),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: onSurface.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+      child: InkWell(
+        onTap: () => _showItems(context, order),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top row: Car plate (PROMINENT) + Time + Status
+              Row(
+                children: [
+                  // Car plate - MOST IMPORTANT
+                  if (order.customerCarPlate != null && order.customerCarPlate!.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.directions_car, size: 18, color: cs.onPrimary),
+                          const SizedBox(width: 6),
+                          Text(
+                            order.customerCarPlate!,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: cs.onPrimary,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Spacer(),
+                  // Time
+                  Text(
+                    _fmtTimeRelative(order.createdAt),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: onSurface.withOpacity(0.6),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Status pill
+                  _StatusPill(status: order.status),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Phone number
+              if (order.customerPhone != null && order.customerPhone!.isNotEmpty)
+                Row(
                   children: [
-                    Icon(Icons.note_alt_outlined,
-                        size: 14, color: onSurface.withOpacity(0.85)),
+                    Icon(Icons.phone, size: 14, color: onSurface.withOpacity(0.6)),
                     const SizedBox(width: 4),
                     Text(
-                      '$notesCount note${notesCount == 1 ? '' : 's'}',
+                      order.customerPhone!,
                       style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: onSurface.withOpacity(0.85),
+                        fontSize: 13,
+                        color: onSurface.withOpacity(0.8),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
+
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+
+              // Order details row
+              Row(
+                children: [
+                  // Items count
+                  Icon(Icons.shopping_bag_outlined, size: 16, color: onSurface.withOpacity(0.6)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${order.items.length} items',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: onSurface.withOpacity(0.8),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  // Notes indicator
+                  if (notesCount > 0) ...[
+                    Icon(Icons.note_alt_outlined, size: 16, color: onSurface.withOpacity(0.6)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$notesCount note${notesCount == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: onSurface.withOpacity(0.8),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+
+                  // Loyalty discount indicator
+                  if (order.loyaltyDiscount != null && order.loyaltyDiscount! > 0) ...[
+                    Icon(Icons.loyalty, size: 16, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    Text(
+                      '-${order.loyaltyDiscount!.toStringAsFixed(3)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+
+                  const Spacer(),
+
+                  // Total amount
+                  Text(
+                    order.subtotal.toStringAsFixed(3),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
+
+              // Action buttons (if not finished)
+              if (!finished) ...[
+                const SizedBox(height: 8),
+                _QuickActions(order: order),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-      trailing: _StatusChanger(order: order),
-      onTap: () => _showItems(context, order),
     );
   }
 
-  String _fmtTime(DateTime dt) {
-    final h = dt.hour.toString().padLeft(2, '0');
-    final m = dt.minute.toString().padLeft(2, '0');
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} • $h:$m';
+  String _fmtTimeRelative(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) {
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    }
+    return '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   void _showItems(BuildContext context, _AdminOrder o) {
@@ -523,131 +608,122 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// ===== Status changer (rules + “advance” button) =====
-class _StatusChanger extends ConsumerStatefulWidget {
-  final _AdminOrder order;
-  const _StatusChanger({required this.order});
+/// ===== Next action data =====
+class _NextAction {
+  final String label;
+  final IconData icon;
+  final Color color;
 
-  @override
-  ConsumerState<_StatusChanger> createState() => _StatusChangerState();
+  _NextAction({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
 }
 
-class _StatusChangerState extends ConsumerState<_StatusChanger> {
+/// ===== Quick action buttons =====
+class _QuickActions extends ConsumerStatefulWidget {
+  final _AdminOrder order;
+  const _QuickActions({required this.order});
+
+  @override
+  ConsumerState<_QuickActions> createState() => _QuickActionsState();
+}
+
+class _QuickActionsState extends ConsumerState<_QuickActions> {
   bool _busy = false;
 
   @override
   Widget build(BuildContext context) {
     final cur = widget.order.status;
-    final nextOptions = _nextOptionsFor(cur); // forward step + cancel
 
-    // Dropdown shows CURRENT status; menu lists current + forward options.
-    final items = <om.OrderStatus>[cur, ...nextOptions];
-
-    final disabled =
-        cur == om.OrderStatus.served || cur == om.OrderStatus.cancelled;
+    // Determine next action
+    final nextAction = _getNextAction(cur);
+    if (nextAction == null) return const SizedBox.shrink();
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        DropdownButton<om.OrderStatus>(
-          value: cur,
-          isDense: true,
-          onChanged: _busy || disabled
-              ? null
-              : (s) async {
-                  if (s == null || s == cur) {
-                    _hint(context);
-                    return;
-                  }
-                  // never go back to pending
-                  if (s == om.OrderStatus.pending) {
-                    _hint(context);
-                    return;
-                  }
-                  if (s == om.OrderStatus.accepted) {
-                    await _acceptAndStartPreparing();
-                  } else {
-                    await _setStatus(s);
-                  }
-                },
-          items: items
-              .map((s) => DropdownMenuItem(
-                    value: s,
-                    child: Text(
-                      s == cur ? '${_label(s)} (current)' : _label(s),
-                    ),
-                  ))
-              .toList(),
+        // Cancel button (small, subtle)
+        OutlinedButton.icon(
+          onPressed: _busy ? null : () => _setStatus(om.OrderStatus.cancelled),
+          icon: const Icon(Icons.close, size: 16),
+          label: const Text('Cancel'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            visualDensity: VisualDensity.compact,
+          ),
         ),
-        const SizedBox(width: 6),
-        IconButton(
-          tooltip: 'Cancel order',
-          icon: const Icon(Icons.cancel_outlined),
-          onPressed: _busy || disabled
-              ? null
-              : () => _setStatus(om.OrderStatus.cancelled),
-        ),
-        const SizedBox(width: 2),
-        // ✓ = advance to next step (pending→accepted→preparing, preparing→ready, ready→served)
-        IconButton(
-          tooltip: 'Advance to next step',
-          icon: const Icon(Icons.check_circle_outline),
-          onPressed: _busy || disabled ? null : _advance,
+        const SizedBox(width: 8),
+        // Main next action button (prominent)
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _busy ? null : () => _performNextAction(),
+            icon: Icon(nextAction.icon, size: 20),
+            label: Text(nextAction.label),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: nextAction.color,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              elevation: 2,
+            ),
+          ),
         ),
       ],
     );
   }
 
-  void _hint(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Choose a next step from the menu or click the ✓ button.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  om.OrderStatus? _nextOf(om.OrderStatus s) {
-    switch (s) {
+  _NextAction? _getNextAction(om.OrderStatus status) {
+    switch (status) {
       case om.OrderStatus.pending:
-        return om.OrderStatus.preparing; // via accept→preparing
+        return _NextAction(
+          label: 'Start Preparing',
+          icon: Icons.restaurant,
+          color: Colors.blue,
+        );
       case om.OrderStatus.accepted:
-        return om.OrderStatus.preparing;
+        return _NextAction(
+          label: 'Start Preparing',
+          icon: Icons.restaurant,
+          color: Colors.blue,
+        );
       case om.OrderStatus.preparing:
-        return om.OrderStatus.ready;
+        return _NextAction(
+          label: 'Mark Ready',
+          icon: Icons.done,
+          color: Colors.orange,
+        );
       case om.OrderStatus.ready:
-        return om.OrderStatus.served;
+        return _NextAction(
+          label: 'Mark Served',
+          icon: Icons.check_circle,
+          color: Colors.green,
+        );
       case om.OrderStatus.served:
       case om.OrderStatus.cancelled:
         return null;
     }
   }
 
-  List<om.OrderStatus> _nextOptionsFor(om.OrderStatus cur) {
+  Future<void> _performNextAction() async {
+    final cur = widget.order.status;
     switch (cur) {
       case om.OrderStatus.pending:
-        return const [om.OrderStatus.preparing, om.OrderStatus.cancelled];
+        await _acceptAndStartPreparing();
+        break;
       case om.OrderStatus.accepted:
-        return const [om.OrderStatus.preparing, om.OrderStatus.cancelled];
+        await _setStatus(om.OrderStatus.preparing);
+        break;
       case om.OrderStatus.preparing:
-        return const [om.OrderStatus.ready, om.OrderStatus.cancelled];
+        await _setStatus(om.OrderStatus.ready);
+        break;
       case om.OrderStatus.ready:
-        return const [om.OrderStatus.served, om.OrderStatus.cancelled];
+        await _setStatus(om.OrderStatus.served);
+        break;
       case om.OrderStatus.served:
       case om.OrderStatus.cancelled:
-        return const <om.OrderStatus>[];
+        break;
     }
-  }
-
-  Future<void> _advance() async {
-    final cur = widget.order.status;
-    if (cur == om.OrderStatus.pending) {
-      await _acceptAndStartPreparing();
-      return;
-    }
-    final next = _nextOf(cur);
-    if (next == null) return;
-    await _setStatus(next);
   }
 
   Future<void> _acceptAndStartPreparing() async {
