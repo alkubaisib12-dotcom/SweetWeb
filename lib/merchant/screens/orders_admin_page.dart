@@ -347,9 +347,20 @@ class _OrderTile extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: Car plate (PROMINENT) + Time + Status
+              // Top row: Order # + Car plate (PROMINENT) + Time + Status
               Row(
                 children: [
+                  // Order number
+                  Text(
+                    '#${order.id.substring(0, 8).toUpperCase()}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: onSurface.withOpacity(0.7),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   // Car plate - MOST IMPORTANT
                   if (order.customerCarPlate != null && order.customerCarPlate!.isNotEmpty)
                     Container(
@@ -500,51 +511,329 @@ class _OrderTile extends ConsumerWidget {
   }
 
   void _showItems(BuildContext context, _AdminOrder o) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final cs = Theme.of(context).colorScheme;
+    final onSurface = cs.onSurface;
+
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (_) {
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          itemCount: o.items.length,
-          separatorBuilder: (_, __) => const Divider(height: 1),
-          itemBuilder: (_, i) {
-            final it = o.items[i];
-            final note = (it.note ?? '').trim();
-            final hasNote = note.isNotEmpty;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, controller) {
+            return ListView(
+              controller: controller,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: [
+                // Header: Order Number + Car Plate
+                Row(
+                  children: [
+                    Text(
+                      'Order #${o.id.substring(0, 8).toUpperCase()}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (o.customerCarPlate != null && o.customerCarPlate!.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: cs.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.directions_car, size: 16, color: cs.onPrimary),
+                            const SizedBox(width: 6),
+                            Text(
+                              o.customerCarPlate!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: cs.onPrimary,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
 
-            return ListTile(
-              dense: true,
-              title: Text(it.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(it.price.toStringAsFixed(3)),
-                  if (hasNote) ...[
-                    const SizedBox(height: 6),
-                    Row(
+                // Customer Info Card
+                Card(
+                  color: cs.surfaceVariant.withOpacity(0.3),
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.note_alt_outlined,
-                            size: 16, color: onSurface.withOpacity(0.8)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            note,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                        Text(
+                          'Customer Info',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (o.customerPhone != null && o.customerPhone!.isNotEmpty)
+                          Row(
+                            children: [
+                              Icon(Icons.phone, size: 16, color: onSurface.withOpacity(0.6)),
+                              const SizedBox(width: 8),
+                              Text(
+                                o.customerPhone!,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (o.table != null && o.table!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.table_bar, size: 16, color: onSurface.withOpacity(0.6)),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Table ${o.table}',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Order Items Header
+                Row(
+                  children: [
+                    const Text(
+                      'Order Items',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${o.items.length} items',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Items List
+                ...o.items.map((it) {
+                  final note = (it.note ?? '').trim();
+                  final hasNote = note.isNotEmpty;
+                  final lineTotal = it.price * it.qty;
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: onSurface.withOpacity(0.1)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      it.name,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${it.price.toStringAsFixed(3)} × ${it.qty}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: onSurface.withOpacity(0.6),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                lineTotal.toStringAsFixed(3),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (hasNote) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.amber.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.note_alt_outlined,
+                                    size: 16,
+                                    color: Colors.amber,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      note,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+
+                // Order Summary
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Subtotal',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          o.subtotal.toStringAsFixed(3),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
+                    if (o.loyaltyDiscount != null && o.loyaltyDiscount! > 0) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.loyalty, size: 16, color: Colors.orange),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Loyalty Discount',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange,
+                            ),
+                          ),
+                          if (o.loyaltyPointsUsed != null && o.loyaltyPointsUsed! > 0)
+                            Text(
+                              ' (${o.loyaltyPointsUsed} pts)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                          const Spacer(),
+                          Text(
+                            '-${o.loyaltyDiscount!.toStringAsFixed(3)}',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Total',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            (o.subtotal - (o.loyaltyDiscount ?? 0.0)).toStringAsFixed(3),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: cs.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                ],
-              ),
-              trailing: Text('x${it.qty}'),
+                ),
+              ],
             );
           },
         );
