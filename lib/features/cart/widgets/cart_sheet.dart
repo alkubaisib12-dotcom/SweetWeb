@@ -204,20 +204,33 @@ class _CartSheetState extends ConsumerState<CartSheet> {
         final subtotal = lines.fold<double>(0.0, (sum, l) => sum + l.lineTotal);
         final onSurface = Theme.of(context).colorScheme.onSurface;
 
-        // Keep the "always disabled" visual style
-        final Color _fgDisabled = onSurface.withOpacity(0.38);
-        final Color _bgDisabled = onSurface.withOpacity(0.12);
-        final ButtonStyle _confirmStyle = ButtonStyle(
-          foregroundColor: MaterialStatePropertyAll(_fgDisabled),
-          backgroundColor: MaterialStatePropertyAll(_bgDisabled),
-          overlayColor: const MaterialStatePropertyAll(Colors.transparent),
-          shadowColor: const MaterialStatePropertyAll(Colors.transparent),
-          elevation: const MaterialStatePropertyAll(0),
-          minimumSize: const MaterialStatePropertyAll(Size.fromHeight(48)),
-          shape: MaterialStatePropertyAll(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+        // Check if all required fields are filled
+        final isReadyToConfirm = _checkoutData.phone.isNotEmpty &&
+                                 _checkoutData.carPlate.isNotEmpty &&
+                                 lines.isNotEmpty;
+
+        // Dynamic button style - green when ready, gray when not
+        final ButtonStyle _confirmStyle = isReadyToConfirm
+            ? ButtonStyle(
+                foregroundColor: const MaterialStatePropertyAll(Colors.white),
+                backgroundColor: const MaterialStatePropertyAll(Color(0xFF22C55E)), // Green
+                elevation: const MaterialStatePropertyAll(2),
+                minimumSize: const MaterialStatePropertyAll(Size.fromHeight(48)),
+                shape: MaterialStatePropertyAll(
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              )
+            : ButtonStyle(
+                foregroundColor: MaterialStatePropertyAll(onSurface.withOpacity(0.38)),
+                backgroundColor: MaterialStatePropertyAll(onSurface.withOpacity(0.12)),
+                overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+                shadowColor: const MaterialStatePropertyAll(Colors.transparent),
+                elevation: const MaterialStatePropertyAll(0),
+                minimumSize: const MaterialStatePropertyAll(Size.fromHeight(48)),
+                shape: MaterialStatePropertyAll(
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              );
 
         return SafeArea(
           top: false,
@@ -352,9 +365,9 @@ class _CartSheetState extends ConsumerState<CartSheet> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: lines.isEmpty
-                        ? null
-                        : () async => _confirmOrder(context, lines, subtotal),
+                    onPressed: isReadyToConfirm
+                        ? () async => _confirmOrder(context, lines, subtotal)
+                        : null,
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text('Confirm Order'),
                     style: _confirmStyle,
